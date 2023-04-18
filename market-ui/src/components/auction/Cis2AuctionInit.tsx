@@ -3,7 +3,7 @@ import { SmartContractParameters, WalletApi } from "@concordium/browser-wallet-a
 import { ContractAddress } from "@concordium/web-sdk";
 import { Typography, Button, Stack, TextField, Checkbox, FormControlLabel } from "@mui/material";
 
-import { ContractInfo, initContract } from "../models/ConcordiumContractClient";
+import { ContractInfo, initContract } from "../../models/ConcordiumContractClient";
 import moment from "moment";
 
 export default function Cis2AuctionInit(props: {

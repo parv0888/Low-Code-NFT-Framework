@@ -1,7 +1,7 @@
 use concordium_cis2::{TokenAmountU64, TokenIdU8};
 use concordium_std::*;
 
-use crate::contract::InitParameter;
+use crate::{contract::InitParameter, error::CanBidError};
 
 pub type ContractTokenId = TokenIdU8;
 
@@ -22,8 +22,12 @@ pub struct ParticipationTokenIdentifier {
 }
 
 impl ParticipationTokenIdentifier {
-    pub(crate) fn token_eq(&self, token_identifier: &AuctionTokenIdentifier) -> bool {
+    pub(crate) fn token_eq(&self, token_identifier: &ParticipationTokenIdentifier) -> bool {
         self.contract.eq(&token_identifier.contract) && self.token_id.eq(&token_identifier.token_id)
+    }
+
+    pub fn new(contract: ContractAddress, token_id: ContractTokenId) -> Self {
+        ParticipationTokenIdentifier { contract, token_id }
     }
 }
 
@@ -87,6 +91,14 @@ pub struct State<S: HasStateApi> {
     pub participants: StateSet<AccountAddress, S>,
 }
 
+pub(crate) enum CanBidErrorResponse {
+    NoNotOpen,
+    NoNotStarted,
+    NoEnded,
+    NoNotAParticipant,
+    NoContractAddress,
+}
+
 impl<S: HasStateApi> State<S> {
     pub fn new(parameter: InitParameter, state_builder: &mut StateBuilder<S>) -> Self {
         State {
@@ -98,5 +110,55 @@ impl<S: HasStateApi> State<S> {
             participation_token: parameter.participation_token,
             participants: state_builder.new_set(),
         }
+    }
+
+    /// Returns true if the auction is public, i.e. does not require a participation token.
+    pub(crate) fn is_public_auction(&self) -> bool {
+        self.participation_token.is_none()
+    }
+
+    pub(crate) fn is_private_auction(&self) -> bool {
+        !self.is_public_auction()
+    }
+
+    pub(crate) fn is_a_participant(&self, address: &AccountAddress) -> bool {
+        self.participants.contains(address)
+    }
+
+    pub(crate) fn can_bid(
+        &self,
+        address: &Address,
+        slot_time: SlotTime,
+    ) -> Result<AccountAddress, CanBidError> {
+        let account_address = match address {
+            Address::Contract(_) => return Err(CanBidErrorResponse::NoContractAddress.into()),
+            Address::Account(add) => add,
+        };
+
+        // Check if auction is open
+        if !self.auction_state.is_open() {
+            return Err(CanBidErrorResponse::NoNotOpen.into());
+        }
+
+        // Check if auction has started
+        if slot_time < self.start {
+            return Err(CanBidErrorResponse::NoNotStarted.into());
+        }
+
+        // Check if auction has ended
+        if slot_time > self.end {
+            return Err(CanBidErrorResponse::NoEnded.into());
+        }
+
+        // Check participation token
+        if self.is_private_auction() {
+            if self.is_a_participant(account_address) {
+                return Ok(*account_address);
+            } else {
+                return Err(CanBidErrorResponse::NoNotAParticipant.into());
+            }
+        }
+
+        return Ok(*account_address);
     }
 }

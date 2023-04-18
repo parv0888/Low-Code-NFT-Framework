@@ -1,5 +1,7 @@
 use concordium_std::*;
 
+use crate::state::CanBidErrorResponse;
+
 /// `bid` function errors
 #[derive(Debug, PartialEq, Eq, Clone, Reject, Serial, SchemaType)]
 pub enum BidError {
@@ -19,6 +21,20 @@ pub enum BidError {
     AuctionNotOpen,
     NotAParticipant,
     LogError,
+    /// Raised when the previous balance could not be transferred back
+    TransferError,
+}
+
+impl From<CanBidError> for BidError {
+    fn from(error: CanBidError) -> Self {
+        match error {
+            CanBidError::NoNotOpen => BidError::AuctionNotOpen,
+            CanBidError::NoNotStarted => BidError::BidTooEarly,
+            CanBidError::NoEnded => BidError::BidTooLate,
+            CanBidError::NoNotAParticipant => BidError::NotAParticipant,
+            CanBidError::NoContractAddress => BidError::OnlyAccount,
+        }
+    }
 }
 
 /// `finalize` function errors
@@ -40,4 +56,32 @@ pub enum ReceiveError {
     UnAuthorized,
     AuctionAlreadyInitialized,
     LogError,
+    InvalidParticipationToken,
+    PublicAuction,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Reject, Serial, SchemaType)]
+pub enum GenericError {
+    ParseParams,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Reject, Serial, SchemaType)]
+pub enum CanBidError {
+    NoNotOpen,
+    NoNotStarted,
+    NoEnded,
+    NoNotAParticipant,
+    NoContractAddress,
+}
+
+impl From<CanBidErrorResponse> for CanBidError {
+    fn from(response: CanBidErrorResponse) -> Self {
+        match response {
+            CanBidErrorResponse::NoNotOpen => CanBidError::NoNotOpen,
+            CanBidErrorResponse::NoNotStarted => CanBidError::NoNotStarted,
+            CanBidErrorResponse::NoEnded => CanBidError::NoEnded,
+            CanBidErrorResponse::NoNotAParticipant => CanBidError::NoNotAParticipant,
+            CanBidErrorResponse::NoContractAddress => CanBidError::NoContractAddress,
+        }
+    }
 }

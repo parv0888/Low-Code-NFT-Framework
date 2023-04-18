@@ -2,7 +2,7 @@ import { Stack, Typography } from "@mui/material";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 import { ContractAddress } from "@concordium/web-sdk";
 
-import { ContractInfo } from '../models/ConcordiumContractClient';
+import { ContractInfo } from '../../models/ConcordiumContractClient';
 import Cis2AuctionFindInstance from "./Cis2AuctionInstance";
 import Cis2AuctionInit from "./Cis2AuctionInit";
 

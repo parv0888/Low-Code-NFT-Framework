@@ -11,7 +11,15 @@
 		{
 			"name": "server-rust-bindings",
 			"path": "market-backend/server-rust-bindings"
+		},
+		{
+			"path": "cis2-auctions"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"jest.disabledWorkspaceFolders": [
+			"server-rust-bindings",
+			"cis2-auctions"
+		]
+	}
 }

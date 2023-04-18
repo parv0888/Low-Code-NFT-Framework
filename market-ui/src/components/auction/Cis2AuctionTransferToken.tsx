@@ -1,19 +1,19 @@
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
-import { TextField, Button } from "@mui/material";
+import { TextField, Button, Stack } from "@mui/material";
 import { ContractAddress } from "@concordium/web-sdk";
 import { FormEvent, useState } from "react";
 
-import { TransferParams } from "../models/Cis2Types";
+import { TransferParams } from "../../models/Cis2Types";
 import {
   Cis2ContractInfo,
   ContractInfo,
-} from "../models/ConcordiumContractClient";
+} from "../../models/ConcordiumContractClient";
 import {
   ensureSupportsCis2,
   isValidTokenId,
   transfer,
-} from "../models/Cis2Client";
-import DisplayError from "./ui/DisplayError";
+} from "../../models/Cis2Client";
+import DisplayError from "../ui/DisplayError";
 
 export default function Cis2AuctionTransferToken(props: {
   provider: WalletApi;
@@ -94,11 +94,11 @@ export default function Cis2AuctionTransferToken(props: {
   };
 
   return (
-    <form onSubmit={submit}>
+    <Stack component={"form"} spacing={2} onSubmit={submit}>
       <TextField
         label="Token ID"
         type="text"
-        variant="outlined"
+        variant="standard"
         value={form.tokenId}
         onChange={(e) => setForm({ ...form, tokenId: e.target.value })}
         required
@@ -108,7 +108,7 @@ export default function Cis2AuctionTransferToken(props: {
       <TextField
         label="Amount"
         type="text"
-        variant="outlined"
+        variant="standard"
         value={form.amount}
         onChange={(e) => setForm({ ...form, amount: e.target.value })}
         required
@@ -118,7 +118,7 @@ export default function Cis2AuctionTransferToken(props: {
       <TextField
         label="Contract Index"
         type="number"
-        variant="outlined"
+        variant="standard"
         value={form.contractIndex.toString()}
         onChange={(e) =>
           setForm({ ...form, contractIndex: BigInt(e.target.value) })
@@ -130,7 +130,7 @@ export default function Cis2AuctionTransferToken(props: {
       <TextField
         label="Contract Subindex"
         type="number"
-        variant="outlined"
+        variant="standard"
         value={form.contractSubindex.toString()}
         onChange={(e) =>
           setForm({ ...form, contractSubindex: BigInt(e.target.value) })
@@ -148,6 +148,6 @@ export default function Cis2AuctionTransferToken(props: {
       >
         Submit
       </Button>
-    </form>
+    </Stack>
   );
 }

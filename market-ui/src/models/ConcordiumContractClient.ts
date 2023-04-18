@@ -55,13 +55,13 @@ export async function initContract(
 		account,
 		AccountTransactionType.InitContract,
 		{
-			amount: toCcd(ccdAmount),
+			amount: toMicroCcd(ccdAmount),
 			moduleRef,
 			initName: contractName,
 			maxContractExecutionEnergy,
 		},
 		params as SmartContractParameters,
-		schemaBuffer.toString("base64"),
+		schemaBuffer.toString("base64")
 	);
 
 	let outcomes = await waitForTransaction(provider, txnHash);
@@ -88,9 +88,7 @@ export async function invokeContract<T>(
 	invoker?: ContractAddress | AccountAddress
 ): Promise<Buffer> {
 	const { schemaBuffer, contractName } = contractInfo;
-	const parameter = !!params
-		? serializeParams(contractName, schemaBuffer, methodName, params)
-		: undefined;
+	const parameter = !!params ? serializeParams(contractName, schemaBuffer, methodName, params) : undefined;
 	let res = await provider.getJsonRpcClient().invokeContract({
 		parameter,
 		contract,
@@ -106,15 +104,7 @@ export async function invokeContract<T>(
 		return Promise.reject(new Error(msg, { cause: res }));
 	}
 
-	if (!res.returnValue) {
-		const msg =
-			`failed invoking contract, null return value` +
-			`method:${methodName}, ` +
-			`contract:(index: ${contract.index.toString()}, subindex: ${contract.subindex.toString()})`;
-		return Promise.reject(new Error(msg, { cause: res }));
-	}
-
-	return Buffer.from(res.returnValue, "hex");
+	return Buffer.from(res.returnValue || "", "hex");
 }
 
 /**
@@ -127,7 +117,7 @@ export async function invokeContract<T>(
  * @param contractAddress Contract Address.
  * @param methodName Contract Method name to Call.
  * @param maxContractExecutionEnergy Maximum energy allowed to execute.
- * @param amount CCD Amount to update the contract with.
+ * @param amountCcd CCD Amount to update the contract with.
  * @returns Update contract Outcomes.
  */
 export async function updateContract<T>(
@@ -138,7 +128,7 @@ export async function updateContract<T>(
 	contractAddress: ContractAddress,
 	methodName: string,
 	maxContractExecutionEnergy: bigint = BigInt(9999),
-	amount: bigint = BigInt(0)
+	amountCcd: bigint = BigInt(0)
 ): Promise<Record<string, TransactionSummary>> {
 	const { schemaBuffer, contractName } = contractInfo;
 	let txnHash = await provider.sendTransaction(
@@ -147,11 +137,11 @@ export async function updateContract<T>(
 		{
 			maxContractExecutionEnergy,
 			address: contractAddress,
-			amount: toCcd(amount),
+			amount: toMicroCcd(amountCcd),
 			receiveName: `${contractName}.${methodName}`,
 		},
 		paramJson as SmartContractParameters,
-		schemaBuffer.toString("base64"),
+		schemaBuffer.toString("base64")
 	);
 
 	let outcomes = await waitForTransaction(provider, txnHash);
@@ -165,16 +155,11 @@ export async function updateContract<T>(
  * @param address Contract Address.
  * @returns Smart Contract instance information.
  */
-export async function getInstanceInfo(
-	provider: WalletApi,
-	address: ContractAddress
-): Promise<InstanceInfo> {
+export async function getInstanceInfo(provider: WalletApi, address: ContractAddress): Promise<InstanceInfo> {
 	let instanceInfo = await provider.getJsonRpcClient().getInstanceInfo(address);
 
 	if (!instanceInfo) {
-		throw Error(
-			"Could not get Contract Information. Please confirm the address is correct"
-		);
+		throw Error("Could not get Contract Information. Please confirm the address is correct");
 	}
 
 	return instanceInfo;
@@ -195,9 +180,7 @@ function waitForTransaction(
 	});
 }
 
-function ensureValidOutcome(
-	outcomes?: Record<string, TransactionSummary>
-): Record<string, TransactionSummary> {
+function ensureValidOutcome(outcomes?: Record<string, TransactionSummary>): Record<string, TransactionSummary> {
 	if (!outcomes) {
 		throw Error("Null Outcome");
 	}
@@ -226,18 +209,8 @@ function ensureValidOutcome(
  * @param params Contract Method params in JSON.
  * @returns Serialize buffer of the input params.
  */
-export function serializeParams<T>(
-	contractName: string,
-	schema: Buffer,
-	methodName: string,
-	params: T
-): Buffer {
-	return serializeUpdateContractParameters(
-		contractName,
-		methodName,
-		params,
-		schema
-	);
+export function serializeParams<T>(contractName: string, schema: Buffer, methodName: string, params: T): Buffer {
+	return serializeUpdateContractParameters(contractName, methodName, params, schema);
 }
 
 function _wait(
@@ -266,9 +239,7 @@ function _wait(
 	}, 1000);
 }
 
-function parseContractAddress(
-	outcomes: Record<string, TransactionSummary>
-): ContractAddress {
+function parseContractAddress(outcomes: Record<string, TransactionSummary>): ContractAddress {
 	for (const blockHash in outcomes) {
 		const res = outcomes[blockHash];
 
@@ -292,15 +263,26 @@ function toBigInt(num: BigInt | number): bigint {
 }
 
 const MICRO_CCD_IN_CCD = 1000000;
-function toCcd(ccdAmount: bigint): CcdAmount {
+export function toMicroCcd(ccdAmount: bigint): CcdAmount {
 	return new CcdAmount(ccdAmount * BigInt(MICRO_CCD_IN_CCD));
 }
 
-export function toParamContractAddress(
-	marketAddress: ContractAddress
-): ParamContractAddress {
+export function toCcd(microCcdAmount: bigint): bigint { 
+	return microCcdAmount / BigInt(MICRO_CCD_IN_CCD);
+}
+
+export function toParamContractAddress(marketAddress: ContractAddress): ParamContractAddress {
 	return {
 		index: parseInt(marketAddress.index.toString()),
 		subindex: parseInt(marketAddress.subindex.toString()),
 	};
 }
+
+export const toContractAddress = (
+	address: { index: number; subindex: number } | { index: string; subindex: string }
+): ContractAddress => {
+	return {
+		index: BigInt(address.index),
+		subindex: BigInt(address.subindex),
+	};
+};

@@ -6,7 +6,7 @@ import { TextField, Typography, Button, Stack } from "@mui/material";
 import {
 	ContractInfo,
 	getInstanceInfo,
-} from "../models/ConcordiumContractClient";
+} from "../../models/ConcordiumContractClient";
 
 export default function Cis2AuctionFindInstance(props: {
 	provider: WalletApi;

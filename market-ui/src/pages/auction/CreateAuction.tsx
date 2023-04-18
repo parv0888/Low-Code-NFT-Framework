@@ -14,10 +14,10 @@ import { useState } from "react";
 import {
   Cis2ContractInfo,
   ContractInfo,
-} from "../models/ConcordiumContractClient";
+} from "../../models/ConcordiumContractClient";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
-import Cis2AuctionFindOrInit from "../components/Cis2AuctionFindOrInit";
-import Cis2AuctionTransferToken from "../components/Cis2AuctionTransferToken";
+import Cis2AuctionFindOrInit from "../../components/auction/Cis2AuctionFindOrInit";
+import Cis2AuctionTransferToken from "../../components/auction/Cis2AuctionTransferToken";
 
 enum Steps {
   GetOrInitCis2AuctionContract,

@@ -40,7 +40,7 @@ pub fn auction_init<S: HasStateApi>(
     mutable,
     enable_logger
 )]
-fn auction_on_cis2_received<S: HasStateApi>(
+fn auction_on_auction_cis2_received<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
     logger: &mut impl HasLogger,
@@ -65,18 +65,6 @@ fn auction_on_cis2_received<S: HasStateApi>(
 
     let token_identifier = AuctionTokenIdentifier::new(sender, params.token_id, params.amount);
     let state = host.state_mut();
-
-    // If the token sent is a participation token
-    // then add the sender as a participant
-    if let Some(pt) = state.participation_token.clone() {
-        if pt.token_eq(&token_identifier) {
-            state.participants.insert(from_account);
-            logger
-                .log(&AuctionEvent::ParticipantAdded(from_account))
-                .map_err(|_| ReceiveError::LogError)?;
-            return Ok(());
-        }
-    }
 
     // If the token being sent is not the participation token
     // Start an auction from the sent token
@@ -106,6 +94,58 @@ fn auction_on_cis2_received<S: HasStateApi>(
     Ok(())
 }
 
+#[receive(
+    contract = "auction",
+    name = "onReceivingParticipationCIS2",
+    error = "ReceiveError",
+    mutable,
+    enable_logger
+)]
+fn auction_on_participation_cis2_received<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
+    logger: &mut impl HasLogger,
+) -> Result<(), ReceiveError> {
+    // Ensure the sender is a contract.
+    let sender = if let Address::Contract(contract) = ctx.sender() {
+        contract
+    } else {
+        bail!(ReceiveError::ContractOnly)
+    };
+
+    // Parse the parameter.
+    let params: ContractOnReceivingCis2Params = ctx
+        .parameter_cursor()
+        .get()
+        .map_err(|_| ReceiveError::ParseParams)?;
+
+    let from_account = match params.from {
+        Address::Account(a) => a,
+        Address::Contract(_) => bail!(ReceiveError::OnlyAccount),
+    };
+
+    let token_identifier = ParticipationTokenIdentifier::new(sender, params.token_id);
+    let state = host.state_mut();
+
+    // If the token sent is a participation token
+    // then add the sender as a participant
+    if let Some(pt) = state.participation_token.clone() {
+        if pt.token_eq(&token_identifier) {
+            state.participants.insert(from_account);
+            logger
+                .log(&AuctionEvent::ParticipantAdded(from_account))
+                .map_err(|_| ReceiveError::LogError)?;
+            return Ok(());
+        } else {
+            // If the token sent is not the participation token
+            bail!(ReceiveError::InvalidParticipationToken)
+        }
+    } else {
+        // If the auction does not have a participation token
+        bail!(ReceiveError::PublicAuction)
+    }
+}
+
 /// Receive function for accounts to place a bid in the auction
 #[receive(
     contract = "auction",
@@ -122,40 +162,24 @@ pub fn auction_bid<S: HasStateApi>(
     logger: &mut impl HasLogger,
 ) -> Result<(), BidError> {
     let state = host.state();
-    // Ensure that only accounts can place a bid
-    let sender_address = match ctx.sender() {
-        Address::Contract(_) => bail!(BidError::OnlyAccount),
-        Address::Account(account_address) => account_address,
-    };
-    let slot_time = ctx.metadata().slot_time();
-    // Ensure the auction has not been finalized yet
-    ensure!(state.auction_state.is_open(), BidError::AuctionNotOpen);
-    ensure!(slot_time <= state.end, BidError::BidTooLate);
-    ensure!(slot_time > state.start, BidError::BidTooEarly);
-    // If the state has a participation token
-    // then check if the sender is in the list of participants
-    if host.state().participation_token.is_some() {
-        ensure!(
-            host.state().participants.contains(&sender_address),
-            BidError::NotAParticipant
-        );
-    }
+    let sender = state.can_bid(&ctx.sender(), ctx.metadata().slot_time())?;
 
     // Balance of the contract
     let balance = host.self_balance();
 
     // Balance of the contract before the call
-    let previous_balance = balance - amount;
+    let highest_bid_ccd = balance - amount;
 
     // Ensure that the new bid exceeds the highest bid so far
-    ensure!(amount > previous_balance, BidError::BidBelowCurrentBid);
+    ensure!(amount > highest_bid_ccd, BidError::BidBelowCurrentBid);
 
     // Calculate the difference between the previous bid and the new bid in CCD.
-    let amount_difference = amount - previous_balance;
+    let amount_difference = amount - highest_bid_ccd;
     // Get the current exchange rate used by the chain
-    let exchange_rates = host.exchange_rates();
     // Convert the CCD difference to EUR
-    let euro_cent_difference = exchange_rates.convert_amount_to_euro_cent(amount_difference);
+    let euro_cent_difference = host
+        .exchange_rates()
+        .convert_amount_to_euro_cent(amount_difference);
 
     // Ensure that the bid is at least the `minimum_raise` more than the previous
     // bid
@@ -164,7 +188,7 @@ pub fn auction_bid<S: HasStateApi>(
         BidError::BidBelowMinimumRaise
     );
 
-    if let Some(account_address) = host.state_mut().highest_bidder.replace(sender_address) {
+    if let Some(address) = host.state_mut().highest_bidder.replace(sender) {
         // Refunding old highest bidder;
         // This transfer (given enough NRG of course) always succeeds because the
         // `account_address` exists since it was recorded when it placed a bid.
@@ -173,8 +197,11 @@ pub fn auction_bid<S: HasStateApi>(
         // Please consider using a pull-over-push pattern when expanding this smart
         // contract to allow smart contract instances to participate in the auction as
         // well. https://consensys.github.io/smart-contract-best-practices/attacks/denial-of-service/
-        host.invoke_transfer(&account_address, previous_balance)
-            .unwrap_abort();
+        host.invoke_transfer(&address, highest_bid_ccd)
+            .map_err(|_e| BidError::TransferError)?;
+    }
+
+    {
         let state = host.state();
         logger
             .log(&AuctionEvent::AuctionUpdated(
@@ -192,6 +219,7 @@ pub fn auction_bid<S: HasStateApi>(
             ))
             .map_err(|_| BidError::LogError)?;
     }
+
     Ok(())
 }
 
@@ -262,6 +290,52 @@ pub fn auction_finalize<S: HasStateApi>(
     Ok(())
 }
 
+#[receive(
+    contract = "auction",
+    name = "convertEuroCentToCcd",
+    parameter = "u64",
+    error = "GenericError",
+    return_value = "Amount"
+)]
+pub fn auction_convert_euro_cent_to_ccd<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> Result<Amount, GenericError> {
+    let euro_cent_amount: u64 = ctx
+        .parameter_cursor()
+        .get()
+        .map_err(|_e| GenericError::ParseParams)?;
+
+    let exchange_rates = host.exchange_rates();
+
+    Ok(exchange_rates.convert_euro_cent_to_amount(euro_cent_amount))
+}
+
+#[receive(
+    contract = "auction",
+    name = "canBid",
+    error = "CanBidError",
+    return_value = "Amount"
+)]
+fn can_bid<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> Result<Amount, CanBidError> {
+    let state = host.state();
+    let slot_time = ctx.metadata().slot_time();
+    let highest_bid_ccd = host.self_balance();
+    let highest_bid_euro_cent = host
+        .exchange_rates()
+        .convert_amount_to_euro_cent(highest_bid_ccd);
+    let next_bid_euro_cent = highest_bid_euro_cent + state.minimum_raise;
+    let next_bid_ccd = host
+        .exchange_rates()
+        .convert_euro_cent_to_amount(next_bid_euro_cent);
+    state.can_bid(&ctx.sender(), slot_time)?;
+
+    Ok(next_bid_ccd)
+}
+
 #[concordium_cfg_test]
 mod tests {
     use super::*;
@@ -325,6 +399,7 @@ mod tests {
     fn new_account_ctx<'a>() -> (AccountAddress, TestReceiveContext<'a>) {
         let account = new_account();
         let ctx = new_ctx(account, Address::Account(account), AUCTION_END);
+
         (account, ctx)
     }
 
@@ -371,7 +446,8 @@ mod tests {
         let param_bytes = to_bytes(&params);
         ctx.set_parameter(&param_bytes);
 
-        auction_on_cis2_received(&ctx, host, logger).expect("should add a token for Auction");
+        auction_on_auction_cis2_received(&ctx, host, logger)
+            .expect("should add a token for Auction");
     }
 
     fn add_auction_participant(
@@ -390,7 +466,8 @@ mod tests {
         let param_bytes = to_bytes(&params);
         ctx.set_parameter(&param_bytes);
 
-        auction_on_cis2_received(&ctx, host, logger).expect("should add a participant");
+        auction_on_participation_cis2_received(&ctx, host, logger)
+            .expect("should add a participant");
     }
 
     #[concordium_test]
