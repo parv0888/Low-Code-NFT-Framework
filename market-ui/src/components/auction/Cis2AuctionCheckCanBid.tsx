@@ -7,7 +7,7 @@ import { balanceOf } from "../../models/Cis2Client";
 import { Cis2ContractInfo, toParamContractAddress } from "../../models/ConcordiumContractClient";
 import { transfer } from "../../models/Cis2Client";
 import DisplayError from "../ui/DisplayError";
-import { Button, Stack } from "@mui/material";
+import { Box, Button, CircularProgress, Stack } from "@mui/material";
 
 export default function Cis2AuctionCheckCanBid(props: {
 	participationContractInfo: Cis2ContractInfo;
@@ -46,7 +46,6 @@ export default function Cis2AuctionCheckCanBid(props: {
 								props.participationTokenId!
 							)
 								.then((amount) => {
-									console.log("amount: " + amount);
 									if (amount < 1) {
 										setState({ ...state, isInProgress: false, error: "You do not have a participation token" });
 										return;
@@ -103,12 +102,15 @@ export default function Cis2AuctionCheckCanBid(props: {
 
 	return (
 		<Stack spacing={2}>
-			<div>
-				Check Can Bid
-				<br />
-				{state.isInProgress ? "In progress" : "Not in progress"}
-				{state.error ? <DisplayError error={state.error} /> : null}
-			</div>
+			{state.isInProgress ? (
+				<Box sx={{ display: "flex", justifyContent: "center" }}>
+					<CircularProgress />
+				</Box>
+			) : (
+				<></>
+			)}
+
+			{state.error ? <DisplayError error={state.error} /> : null}
 			<Button variant="outlined" disabled={state.isInProgress} type="button" onClick={props.onCancel}>
 				Cancel
 			</Button>

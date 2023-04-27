@@ -13,6 +13,7 @@ import { Metadata } from "../../models/Cis2Types";
 import { fetchJson, toLocalStorageKey } from "../../models/Utils";
 import { getTokenMetadata } from "../../models/Cis2Client";
 import Cis2MetadataImageLazy from "../Cis2MetadataImageLazy";
+import moment from "moment";
 
 /**
  * Displays a single token from the list of all the tokens listed on Marketplace.
@@ -27,24 +28,19 @@ export default function Cis2AuctionsListItem(props: {
 }) {
 	const { item, provider, account } = props;
 
-	let [state, setState] = useState({
-		isLoading: true,
-		url: "",
-		name: "",
-		desc: "",
-		price: item.highest_bid || 0 + item.minimum_raise,
-	});
+	let [metadata, setMetadata] = useState<Metadata>();
+	let [loading, setLoading] = useState(true);
+	let [price, setPrice] = useState(item.highest_bid + item.minimum_raise);
 
 	useEffect(() => {
-		let setStateMetadata = (metadata: Metadata) =>
-			setState({
-				...state,
-				isLoading: false,
-				url: metadata.display.url,
-				name: metadata.name,
-				desc: metadata.description,
-				price: item.highest_bid,
-			});
+		setPrice(item.highest_bid + item.minimum_raise);
+	}, [item]);
+
+	useEffect(() => {
+		let setStateMetadata = (metadata: Metadata) => {
+			setLoading(false);
+			setMetadata(metadata);
+		};
 
 		let metadataJson = localStorage.getItem(
 			toLocalStorageKey(item.auction_state.token_id, item.auction_state.contract)
@@ -82,21 +78,26 @@ export default function Cis2AuctionsListItem(props: {
 				tokenId={item.auction_state.token_id}
 			/>
 			<ImageListItemBar
-				title={`Price: ${state.price} CCD`}
+				title={`Price: ${price} Euro Cent`}
 				position="below"
 				subtitle={
 					<>
 						<Typography variant="caption" component={"div"}>
-							{state.name}
+							{metadata?.name}
 						</Typography>
 						<Typography variant="caption" component={"div"}>
-							{state.desc}
+							{metadata?.description}
 						</Typography>
 						<Typography variant="caption" component={"div"}>
 							Index : {item.auction_state.contract.index.toString()} / {item.auction_state.contract.subindex.toString()}
 						</Typography>
-						<Typography variant="caption" component={"div"} title={item.highest_bidder}>
-							Bidder : {item.highest_bidder?.slice(0, 5)}...
+						{item.highest_bidder && (
+							<Typography variant="caption" component={"div"} title={item.highest_bidder}>
+								Bidder : {item.highest_bidder?.slice(0, 5)}...
+							</Typography>
+						)}
+						<Typography variant="caption" component={"div"} title={moment(props.item.end, "X").format()}>
+							Ends: {moment(props.item.end, "X").fromNow()}
 						</Typography>
 					</>
 				}

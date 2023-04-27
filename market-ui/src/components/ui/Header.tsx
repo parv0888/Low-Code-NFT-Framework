@@ -1,19 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import {
-	AppBar,
-	Container,
-	Toolbar,
-	Typography,
-	Box,
-	IconButton,
-	Menu,
-	MenuItem,
-	Button,
-} from "@mui/material";
+import { AppBar, Container, Toolbar, Typography, Box, IconButton, Menu, MenuItem, Button } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { styled } from "@mui/system";
 import { useLocation } from "react-router-dom";
+import BackendCatchupStatus from "../backend-info/BackendCatchupStatus";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 interface IPage {
 	href?: string;
@@ -23,11 +15,7 @@ interface IPage {
 	display: "primary" | "secondary";
 }
 
-function PageButton(props: {
-	page: IPage;
-	isSelected: boolean;
-	onClick: (path: string) => void;
-}) {
+function PageButton(props: { page: IPage; isSelected: boolean; onClick: (path: string) => void }) {
 	const { page, isSelected, onClick } = props;
 
 	return (
@@ -48,14 +36,13 @@ function PageButton(props: {
 					borderColor: "white",
 					borderRadius: "4px",
 				},
-			}}
-		>
+			}}>
 			{page.name}
 		</Button>
 	);
 }
 
-function Header(props: { pages: IPage[] }) {
+function Header(props: { provider: WalletApi; pages: IPage[] }) {
 	const StyledAppBar = styled(AppBar)({
 		backgroundColor: "#000000",
 	});
@@ -63,9 +50,7 @@ function Header(props: { pages: IPage[] }) {
 	const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
 	const navigate = useNavigate();
 	const location = useLocation();
-	const selectedPageName = props.pages.find(
-		(p) => p.href === location.pathname || p.path === location.pathname
-	)?.name;
+	const selectedPageName = props.pages.find((p) => p.href === location.pathname || p.path === location.pathname)?.name;
 
 	const handleCloseNavMenu = (href?: string) => {
 		setAnchorElNav(null);
@@ -87,7 +72,7 @@ function Header(props: { pages: IPage[] }) {
 						variant="h6"
 						noWrap
 						component="a"
-						onClick={()=>handleCloseNavMenu("/")}
+						onClick={() => handleCloseNavMenu("/")}
 						sx={{
 							mr: 2,
 							display: { xs: "none", md: "flex" },
@@ -96,8 +81,7 @@ function Header(props: { pages: IPage[] }) {
 							letterSpacing: ".3rem",
 							color: "inherit",
 							textDecoration: "none",
-						}}
-					>
+						}}>
 						Concordium
 					</Typography>
 
@@ -108,8 +92,7 @@ function Header(props: { pages: IPage[] }) {
 							aria-controls="menu-appbar"
 							aria-haspopup="true"
 							onClick={handleOpenNavMenu}
-							color="inherit"
-						>
+							color="inherit">
 							<MenuIcon />
 						</IconButton>
 						<Menu
@@ -128,14 +111,12 @@ function Header(props: { pages: IPage[] }) {
 							onClose={() => handleCloseNavMenu()}
 							sx={{
 								display: { xs: "block", md: "none" },
-							}}
-						>
+							}}>
 							{props.pages.map((page) => (
 								<MenuItem
 									key={page.name}
 									onClick={() => handleCloseNavMenu(page.href || page.path)}
-									sx={{ border: "1px", borderColor: "white" }}
-								>
+									sx={{ border: "1px", borderColor: "white" }}>
 									<Typography textAlign="center">{page.name}</Typography>
 								</MenuItem>
 							))}
@@ -154,8 +135,7 @@ function Header(props: { pages: IPage[] }) {
 							letterSpacing: ".3rem",
 							color: "inherit",
 							textDecoration: "none",
-						}}
-					>
+						}}>
 						Concordium
 					</Typography>
 					<Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
@@ -175,8 +155,7 @@ function Header(props: { pages: IPage[] }) {
 							flexGrow: 1,
 							display: { xs: "none", md: "flex" },
 							flexDirection: "row-reverse",
-						}}
-					>
+						}}>
 						{props.pages
 							.filter((p) => p.display === "secondary")
 							.map((page) => (
@@ -187,6 +166,9 @@ function Header(props: { pages: IPage[] }) {
 									onClick={(path) => handleCloseNavMenu(path)}
 								/>
 							))}
+					</Box>
+					<Box display="flex">
+						<BackendCatchupStatus provider={props.provider}/>
 					</Box>
 				</Toolbar>
 			</Container>

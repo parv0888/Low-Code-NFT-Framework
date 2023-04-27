@@ -155,7 +155,7 @@ export default function MarketplaceTransferDialog(props: {
 										onChange={e => setState({ ...state, paymentType: e.target.value })}
 										disabled={state.isBought || state.isBeingBought}
 									/>}
-									label="Wert" />
+									label="Credit Card" />
 							</RadioGroup>
 						</FormControl>
 						{state.error && (

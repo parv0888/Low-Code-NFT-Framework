@@ -5,17 +5,15 @@ import {
 	ContractAddress,
 	AccountAddress,
 	AccountTransactionType,
-	UpdateContractPayload,
 	serializeUpdateContractParameters,
 	ModuleReference,
-	InitContractPayload,
 	InstanceInfo,
 	TransactionStatusEnum,
 	TransactionSummary,
 	CcdAmount,
-	SchemaVersion,
 } from "@concordium/web-sdk";
 import { ParamContractAddress } from "./ConcordiumTypes";
+import bigInt from "big-integer";
 
 export interface ContractInfo {
 	schemaBuffer: Buffer;
@@ -193,9 +191,10 @@ function ensureValidOutcome(outcomes?: Record<string, TransactionSummary>): Reco
 		let failures = Object.keys(outcomes)
 			.map((k) => outcomes[k])
 			.filter((s) => s.result.outcome === "reject")
-			.map((s) => (s.result as any).rejectReason.tag)
-			.join(",");
-		throw Error(`Transaction failed, reasons: ${failures}`);
+			.map((s) => (s.result as any).rejectReason);
+		throw Error(`Transaction failed, reasons: ${failures.map((f) => f.tag).join(",")}`, {
+			cause: failures,
+		});
 	}
 
 	return outcomes;
@@ -267,8 +266,13 @@ export function toMicroCcd(ccdAmount: bigint): CcdAmount {
 	return new CcdAmount(ccdAmount * BigInt(MICRO_CCD_IN_CCD));
 }
 
-export function toCcd(microCcdAmount: bigint): bigint { 
-	return microCcdAmount / BigInt(MICRO_CCD_IN_CCD);
+export function toCcd(microCcdAmount: bigint | number | string): bigint {
+	const r = bigInt(microCcdAmount.toString()).divmod(MICRO_CCD_IN_CCD);
+	if (r.remainder.greater(0)) {
+		return BigInt(r.quotient.add(1).toString());
+	} else {
+		return BigInt(r.quotient.toString());
+	}
 }
 
 export function toParamContractAddress(marketAddress: ContractAddress): ParamContractAddress {

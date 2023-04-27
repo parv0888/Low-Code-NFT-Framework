@@ -8,6 +8,8 @@ import { Auction } from "../../models/AuctionTypes";
 import Cis2AuctionCheckCanBid from "./Cis2AuctionCheckCanBid";
 import { Cis2ContractInfo, toContractAddress } from "../../models/ConcordiumContractClient";
 import Cis2AuctionBid from "./Cis2AuctionBid";
+import Cis2MetadataImageLazy from "../Cis2MetadataImageLazy";
+import { ContractAddress } from "@concordium/web-sdk";
 
 enum Steps {
 	CheckCanBid,
@@ -18,6 +20,7 @@ enum Steps {
 type StepType = { step: Steps; title: string };
 
 export default function Cis2AuctionBidDialog(props: {
+	tokenContractInfo: Cis2ContractInfo;
 	participationContractInfo: Cis2ContractInfo;
 	isOpen: boolean;
 	auction: Auction;
@@ -86,6 +89,37 @@ export default function Cis2AuctionBidDialog(props: {
 		}
 	};
 
+	const CIS2Display = (props: {
+		account: string;
+		contract: ContractAddress;
+		tokenId: string;
+		tokenContractInfo: Cis2ContractInfo;
+		provider: WalletApi;
+	}) => {
+		return (
+			<Grid container>
+				<Grid item xs={6}>
+					<Paper variant="outlined">
+						<Cis2MetadataImageLazy
+							account={props.account}
+							contractAddress={props.contract}
+							contractInfo={props.tokenContractInfo}
+							tokenId={props.tokenId}
+							provider={props.provider}
+						/>
+					</Paper>
+				</Grid>
+				<Grid item xs={6}>
+					<Paper variant="outlined">
+						<Typography>Contract Index : {props.contract.index.toString()}</Typography>
+						<Typography>Contract Subindex : {props.contract.subindex.toString()}</Typography>
+						<Typography>Token Id : {props.tokenId}</Typography>
+					</Paper>
+				</Grid>
+			</Grid>
+		);
+	};
+
 	return (
 		<Dialog open={open} onClose={handleClose} maxWidth="xl" fullWidth>
 			<DialogTitle>Bid Token: {props.auction.auction_state.token_id}</DialogTitle>
@@ -104,10 +138,47 @@ export default function Cis2AuctionBidDialog(props: {
 								<ArrowBackRounded></ArrowBackRounded>
 							</IconButton>
 						</Grid>
-						<Grid item xs={11}>
+						<Grid item xs={12}>
 							<Typography variant="h4" gutterBottom sx={{ pt: "20px", width: "100%" }} textAlign="center">
 								{activeStep.title}
 							</Typography>
+						</Grid>
+						<Grid item xs={4}>
+							<Typography variant="h5" textAlign={"center"}>
+								Auction Contract
+							</Typography>
+							<Typography>Index : {props.auction.address.index}</Typography>
+							<Typography>Subindex : {props.auction.address.subindex}</Typography>
+						</Grid>
+						<Grid item xs={4}>
+							<Typography variant="h5" textAlign={"center"}>
+								Auction Token
+							</Typography>
+							<CIS2Display
+								account={props.account}
+								tokenContractInfo={props.tokenContractInfo}
+								provider={props.provider}
+								contract={toContractAddress(props.auction.auction_state.contract)}
+								tokenId={props.auction.auction_state.token_id}
+							/>
+						</Grid>
+						<Grid item xs={4}>
+							<Typography variant="h5" textAlign={"center"}>
+								Participation Token
+							</Typography>
+							{props.auction.participation_token ? (
+								<CIS2Display
+									account={props.account}
+									tokenContractInfo={props.participationContractInfo}
+									provider={props.provider}
+									contract={toContractAddress(props.auction.participation_token!.contract)}
+									tokenId={props.auction.participation_token!.token_id}
+								/>
+							) : (
+								<Typography variant="h4" textAlign={"center"}>
+									None
+								</Typography>
+							)}
 						</Grid>
 					</Grid>
 					<StepContent />

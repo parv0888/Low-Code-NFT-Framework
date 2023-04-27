@@ -17,40 +17,44 @@ export default function AuctionsList(props: {
 	contractInfo: ContractInfo;
 	account: string;
 }) {
-	let [state, setState] = useState<{
-		selected?: Auction;
-		auctions: Auction[];
-	}>({ auctions: [] });
+	let [refresh, setRefresh] = useState({ refresh: 0 });
+	let [selected, setSelected] = useState<Auction>();
+	let [auctions, setAuctions] = useState<Auction[]>([]);
 
 	useEffect(() => {
-		list().then((auctions) => setState({ ...state, auctions }));
-	}, [props.account]);
+		list().then((auctions) => setAuctions(auctions));
+	}, [props.account, refresh.refresh]);
 
-	const setSelected = (auction?: Auction) => setState({ ...state, selected: auction });
+	const handleClose = () => {
+		setRefresh({ refresh: refresh.refresh + 1 });
+		setSelected(undefined);
+		console.log(refresh);
+	};
 
 	return (
 		<Container maxWidth={"md"}>
 			<ImageList key="nft-image-list" cols={3}>
-				{state.auctions.map((t) => (
+				{auctions.map((auction) => (
 					<Cis2AuctionsListItem
 						provider={props.provider}
 						account={props.account}
 						contractInfo={props.contractInfo}
-						item={t}
-						key={t.address.index}
+						item={auction}
+						key={auction.address.index}
 						onBidClicked={setSelected}
 						auctionTokenContractInfo={props.cis2ContractInfo}
 					/>
 				))}
 			</ImageList>
-			{state.selected && (
+			{selected && (
 				<Cis2AuctionBidDialog
 					participationContractInfo={props.cis2ContractInfo}
+					tokenContractInfo={props.cis2ContractInfo}
 					provider={props.provider}
 					account={props.account}
-					auction={state.selected!}
+					auction={selected!}
 					isOpen={true}
-					onClose={() => setSelected(undefined)}
+					onClose={handleClose}
 				/>
 			)}
 		</Container>

@@ -24,10 +24,8 @@ export const canBid = async (
 			AUCTION_CONTRACT_INFO.contractName,
 			"canBid"
 		);
-		console.log(ret);
 		return ret;
 	} catch (err) {
-		console.log(err);
 		throw err;
 	}
 };
@@ -36,19 +34,43 @@ export const bid = async (
 	provider: WalletApi,
 	account: string,
 	auctionContractAddress: ContractAddress,
-	amountMicroCcd: bigint
+	amountCcd: bigint
 ) => {
-	// bid amount is added with 1 ccd to increase the default value
-	const amountCcd = toCcd(amountMicroCcd) + BigInt(1);
-
-	await updateContract(
-		provider,
-		AUCTION_CONTRACT_INFO,
-		undefined,
-		account,
-		auctionContractAddress,
-		"bid",
-		BigInt(9999),
-		amountCcd
-	);
+	try {
+		await updateContract(
+			provider,
+			AUCTION_CONTRACT_INFO,
+			undefined,
+			account,
+			auctionContractAddress,
+			"bid",
+			BigInt(9999),
+			amountCcd
+		);
+	} catch (err: any) {
+		if (err.cause && err.cause.length) {
+			switch (err?.cause[0]?.rejectReason) {
+				case -1:
+					throw new Error("Only Accounts Can Bid");
+				case -2:
+					throw new Error("Bid Below Current Bid");
+				case -3:
+					throw new Error("Bid Below Minimum Raise");
+				case -4:
+					throw new Error("Bid Too Late");
+				case -5:
+					throw new Error("Bid Too Early");
+				case -6:
+					throw new Error("Auction Not Open");
+				case -7:
+					throw new Error("Not a Participant");
+				case -8:
+					throw new Error("Logging error");
+				case -9:
+					throw new Error("Last Bid amount Transfer Error");
+			};
+		}
+		
+		throw err;
+	}
 };

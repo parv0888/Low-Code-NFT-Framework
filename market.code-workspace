@@ -20,6 +20,7 @@
 		"jest.disabledWorkspaceFolders": [
 			"server-rust-bindings",
 			"cis2-auctions"
-		]
+		],
+		"vue.features.codeActions.enable": false
 	}
 }
