@@ -73,6 +73,7 @@ export const WERT_ORIGIN = "https://sandbox.wert.io";
 export const WEB_URL = "http://localhost:3001";
 export const WEB_TOKENS_LIST_URL = `${WEB_URL}/market/index/:index/subindex/:subindex/tokens`;
 export const WEB_AUCTIONS_LIVE_LIST_URL = `${WEB_URL}/auctions/live`;
+export const WEB_AUCTIONS_ENDED_LIST_URL = `${WEB_URL}/auctions/ended/:account`;
 export const WEB_BLOCK_HEIGHT_URL = `${WEB_URL}/system/block-height`;
 
 // Cis2 Auction Config Options
@@ -82,6 +83,6 @@ export const AUCTION_CONTRACT_INFO: ContractInfo = {
   contractName: "auction",
   schemaBuffer: Buffer.from(AUCTION_CONTRACT_SCHEMA, "hex"),
   moduleRef: new ModuleReference(
-    "cc68639cd6fbb4e0af22c675c06ecbb4ebcdc44318898a89f055586c12099c6d"
+    "0e9e59bd6eaf01dd12bf4d3f5b954ec3a77c117d02eb0e471a0578719ca7196b"
   ),
 };

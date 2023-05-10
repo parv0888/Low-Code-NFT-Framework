@@ -16,7 +16,7 @@
 - ### Deploy
 
   ```bash
-  concordium-client module deploy ./module.wasm --sender new --grpc-ip 127.0.0.1 --grpc-port 20002
+  concordium-client module deploy ./module.wasm --sender new --grpc-ip 127.0.0.1 --grpc-port 20000
   ```
 
 ### Utils

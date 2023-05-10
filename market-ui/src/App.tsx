@@ -2,7 +2,7 @@ import "./App.css";
 
 import { useEffect, useState } from "react";
 import { detectConcordiumProvider, WalletApi } from "@concordium/browser-wallet-api-helpers";
-import { Box, Link, Typography } from "@mui/material";
+import { AppBar, Box, Breadcrumbs, Button, Container, Icon, Link, Toolbar, Typography, colors } from "@mui/material";
 import { Route, Routes, useParams, Navigate, useNavigate } from "react-router-dom";
 import { ContractAddress } from "@concordium/web-sdk";
 
@@ -21,11 +21,23 @@ import ConnectWallet from "./components/ConnectWallet";
 import Header from "./components/ui/Header";
 import { MINTING_UI_ONLY } from "./Constants";
 import CreateAuction from "./pages/auction/CreateAuction";
-import ListAuctionsPage from "./pages/auction/ListAuctionsPage";
+import AuctionsPage from "./pages/AuctionsPage";
+import EndedAuctions from "./pages/auction/EndedAuctions";
+import LiveAuctionsList from "./components/auction/LiveAuctionsList";
+import EndedAuctionsList from "./components/auction/EndedAuctionsList";
+import MarketPage from "./pages/MarketPage";
+import { toContractAddress } from "./models/ConcordiumContractClient";
+import CIS2Page from "./pages/CIS2Page";
+import BackendCatchupStatus from "./components/backend-info/BackendCatchupStatus";
 
 function App() {
 	const params = useParams();
 	const navigate = useNavigate();
+	const { index, subindex } = useParams();
+	const marketContract = {
+		index: BigInt(index || MARKET_CONTRACT_ADDRESS.index.toString()),
+		subindex: BigInt(subindex || MARKET_CONTRACT_ADDRESS.subindex.toString()),
+	};
 
 	let marketplaceContractAddress: ContractAddress | undefined = undefined;
 	if (!MINTING_UI_ONLY) {
@@ -90,145 +102,140 @@ function App() {
 		return !!state.provider && !!state.account;
 	}
 
-	function onMarketplaceContractChanged(marketplaceContractAddress: ContractAddress) {
-		setState({ ...state, marketplaceContractAddress });
-		navigate("/");
-	}
-
-	let pages = new Array<{
-		path: string;
-		href?: string;
-		name: string;
-		component: JSX.Element;
-		display: "primary" | "secondary";
-	}>();
-
-	pages.push({
-		path: "/auctions/create-new",
-		name: "Create New Auction",
-		display: "secondary",
-		component: (
-			<CreateAuction
-				tokenContractInfo={CIS2_MULTI_CONTRACT_INFO}
-				provider={state.provider!}
-				account={state.account!}
-				auctionContractInfo={AUCTION_CONTRACT_INFO}
-				onDone={function (auctionAddress: ContractAddress, tokenAddress: ContractAddress, tokenId: string): void {
-					alert(
-						`Created new Auction ${auctionAddress.index.toString()}/${auctionAddress.subindex.toString()} for token ${tokenId} at ${tokenAddress.index.toString()}/${tokenAddress.subindex.toString()}`
-					);
-				}}
-			/>
-		),
-	});
-
-	pages.push({
-		path: "/auctions/live",
-		name: "Live Auctions",
-		display: "primary",
-		component: (
-			<ListAuctionsPage
-				provider={state.provider!}
-				account={state.account!}
-				contractInfo={AUCTION_CONTRACT_INFO}
-				cis2ContractInfo={CIS2_MULTI_CONTRACT_INFO}
-			/>
-		),
-	});
-
-	if (state.marketplaceContractAddress) {
-		pages.push({
-			path: "/buy/:index/:subindex",
-			href: `/buy/${state.marketplaceContractAddress.index.toString()}/${state.marketplaceContractAddress.subindex.toString()}`,
-			name: "Buy",
-			component: (
-				<BuyPage
-					provider={state.provider!}
-					account={state.account!}
-					marketContractAddress={state.marketplaceContractAddress!}
-					contractInfo={CIS2_MULTI_CONTRACT_INFO}
-				/>
-			),
-			display: "primary",
-		});
-
-		pages.push({
-			path: "/sell/:index/:subindex",
-			href: `/sell/${state.marketplaceContractAddress.index.toString()}/${state.marketplaceContractAddress.subindex.toString()}`,
-			name: "Sell",
-			component: (
-				<SellPage
-					provider={state.provider!}
-					account={state.account!}
-					marketContractAddress={state.marketplaceContractAddress!}
-					contractInfo={CIS2_MULTI_CONTRACT_INFO}
-				/>
-			),
-			display: "primary",
-		});
-	}
-
-	pages.push({
-		path: "/mint-multi-batch",
-		name: "Mint",
-		component: (
-			<MintPage
-				key={CIS2_MULTI_CONTRACT_INFO.contractName}
-				contractInfo={CIS2_MULTI_CONTRACT_INFO}
-				provider={state.provider!}
-				account={state.account!}
-			/>
-		),
-		display: "primary",
-	});
-
-	if (CREATE_NEW_MARKETPLACE) {
-		pages.push({
-			path: "/marketplace-init-or-add",
-			name: "Create My Marketplace",
-			component: (
-				<ContractFindInstanceOrInit
-					provider={state.provider!}
-					account={state.account!}
-					contractInfo={MARKETPLACE_CONTRACT_INFO}
-					onDone={(address) => onMarketplaceContractChanged(address)}
-				/>
-			),
-			display: "secondary",
-		});
-	}
-
-	function DefaultRouteElement() {
-		if (MINTING_UI_ONLY) {
-			return <Navigate replace to={"/mint-multi-batch"} />;
-		} else if (state.marketplaceContractAddress) {
-			return (
-				<Navigate
-					replace
-					to={`/buy/${state.marketplaceContractAddress.index.toString()}/${state.marketplaceContractAddress.subindex.toString()}`}
-				/>
-			);
-		} else if (CREATE_NEW_MARKETPLACE) {
-			return <Navigate replace to={"/marketplace-init-or-add"} />;
-		} else {
-			return <Navigate replace to={"/mint-multi-batch"} />;
-		}
+	if (!isConnected()) { 
+		return (<ConnectWallet connect={connect} />)
 	}
 
 	return (
 		<>
-			{state.provider && <Header pages={pages} provider={state.provider!} />}
+			<AppBar position="static">
+				<Container maxWidth={"xl"}>
+					<Toolbar>
+						<Box sx={{ flexGrow: 1 }}>
+							<Typography variant="h4" component="div">
+								Concordium
+							</Typography>
+						</Box>
+						<Button color="inherit" onClick={() => navigate("/market")}>
+							Market
+						</Button>
+						<Button color="inherit" onClick={() => navigate("/auctions")}>
+							Auctions
+						</Button>
+						<Button color="inherit" onClick={() => navigate("/cis2")}>
+							CIS2 Token Tools
+						</Button>
+						<BackendCatchupStatus provider={state.provider!} />
+					</Toolbar>
+				</Container>
+			</AppBar>
 			<Box className="App">
-				{isConnected() ? (
+				<Container maxWidth={"lg"}>
 					<Routes>
-						{pages.map((p) => (
-							<Route path={p.path} element={p.component} key={p.name} />
-						))}
-						<Route path="/" element={<DefaultRouteElement />} />
+						<Route path="/auctions" element={<AuctionsPage />} key="auctions">
+							<Route
+								path="live"
+								element={
+									<LiveAuctionsList
+										provider={state.provider!}
+										account={state.account!}
+										contractInfo={AUCTION_CONTRACT_INFO}
+										cis2ContractInfo={CIS2_MULTI_CONTRACT_INFO}
+									/>
+								}></Route>
+							<Route
+								path="ended"
+								element={
+									<EndedAuctionsList
+										provider={state.provider!}
+										account={state.account!}
+										contractInfo={AUCTION_CONTRACT_INFO}
+										cis2ContractInfo={CIS2_MULTI_CONTRACT_INFO}
+									/>
+								}
+							/>
+							<Route
+								path="create"
+								element={
+									<CreateAuction
+										tokenContractInfo={CIS2_MULTI_CONTRACT_INFO}
+										provider={state.provider!}
+										account={state.account!}
+										auctionContractInfo={AUCTION_CONTRACT_INFO}
+										onDone={function (
+											auctionAddress: ContractAddress,
+											tokenAddress: ContractAddress,
+											tokenId: string
+										): void {
+											alert("auction created");
+											navigate("live");
+										}}
+									/>
+								}
+							/>
+							<Route path="" element={<Navigate to={"/auctions/live"} replace={true} />} />
+						</Route>
+						<Route path="/market" element={<MarketPage marketContract={marketContract} />} key="market">
+							<Route
+								path="buy/:index/:subindex"
+								element={
+									<BuyPage
+										account={state.account!}
+										provider={state.provider!}
+										contractInfo={CIS2_MULTI_CONTRACT_INFO}
+										marketContractAddress={marketContract}
+									/>
+								}
+							/>
+							<Route
+								path="sell"
+								element={
+									<SellPage
+										provider={state.provider!}
+										account={state.account!}
+										marketContractAddress={marketContract}
+										contractInfo={CIS2_MULTI_CONTRACT_INFO}
+									/>
+								}
+							/>
+							<Route
+								path="create"
+								element={
+									<ContractFindInstanceOrInit
+										provider={state.provider!}
+										account={state.account!}
+										contractInfo={MARKETPLACE_CONTRACT_INFO}
+										onDone={(address) => navigate(`buy/${address.index.toString()}/${address.subindex.toString()}`)}
+									/>
+								}
+							/>
+							<Route
+								path=""
+								element={
+									<Navigate
+										to={`buy/${marketContract.index.toString()}/${marketContract.subindex.toString()}`}
+										replace={true}
+									/>
+								}
+							/>
+						</Route>
+						<Route path="/cis2" element={<CIS2Page />} key="cis2">
+							<Route
+								path="mint"
+								element={
+									<MintPage
+										key={CIS2_MULTI_CONTRACT_INFO.contractName}
+										contractInfo={CIS2_MULTI_CONTRACT_INFO}
+										provider={state.provider!}
+										account={state.account!}
+									/>
+								}
+							/>
+							<Route path="" element={<Navigate to={"mint"} replace={true} />} />
+						</Route>
+						<Route path="*" element={<Navigate to={"/market"} replace={true} />} />
 					</Routes>
-				) : (
-					<ConnectWallet connect={connect} />
-				)}
+				</Container>
 			</Box>
 			<footer className="footer">
 				<Typography textAlign={"center"} sx={{ color: "white" }}>

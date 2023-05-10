@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-	Stepper,
-	Step,
-	StepLabel,
-	Typography,
-	Paper,
-	Container
-} from "@mui/material";
+import { Stepper, Step, StepLabel, Typography, Paper } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 import { ContractAddress } from "@concordium/common-sdk";
@@ -52,16 +45,12 @@ function SellPage(props: {
 		activeStep: steps[0],
 	});
 
-	function onGetCollectionAddress(
-		address: ContractAddress,
-		_contractInfo: Cis2ContractInfo
-	) {
+	function onGetCollectionAddress(address: ContractAddress, _contractInfo: Cis2ContractInfo) {
 		setState({
 			...state,
 			activeStep: steps[1],
 			nftContract: address,
 		});
-
 	}
 
 	function onCheckOperator(hasOwnership: boolean) {
@@ -106,9 +95,7 @@ function SellPage(props: {
 					<Cis2FindInstance
 						provider={props.provider}
 						contractInfo={props.contractInfo}
-						onDone={(address, contractInfo) =>
-							onGetCollectionAddress(address, contractInfo)
-						}
+						onDone={(address, contractInfo) => onGetCollectionAddress(address, contractInfo)}
 					/>
 				);
 			case Steps.CheckOperator:
@@ -161,12 +148,8 @@ function SellPage(props: {
 	}
 
 	return (
-		<Container sx={{ maxWidth: "xl", pt: "10px" }}>
-			<Stepper
-				activeStep={state.activeStep.step}
-				alternativeLabel
-				sx={{ padding: "20px" }}
-			>
+		<>
+			<Stepper activeStep={state.activeStep.step} alternativeLabel>
 				{steps.map((step) => (
 					<Step key={step.step}>
 						<StepLabel>{step.title}</StepLabel>
@@ -174,17 +157,12 @@ function SellPage(props: {
 				))}
 			</Stepper>
 			<Paper sx={{ padding: "20px" }} variant="outlined">
-				<Typography
-					variant="h4"
-					gutterBottom
-					sx={{ pt: "20px" }}
-					textAlign="left"
-				>
+				<Typography variant="h4" gutterBottom sx={{ pt: "20px" }} textAlign="left">
 					{state.activeStep.title}
 				</Typography>
 				<StepContent />
 			</Paper>
-		</Container>
+		</>
 	);
 }
 

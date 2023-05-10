@@ -1,16 +1,7 @@
 import { useState } from "react";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 import { ContractAddress } from "@concordium/web-sdk";
-import {
-	Stepper,
-	Step,
-	StepLabel,
-	Typography,
-	Paper,
-	Grid,
-	IconButton,
-	AlertColor,
-} from "@mui/material";
+import { Stepper, Step, StepLabel, Typography, Paper, Grid, IconButton, AlertColor } from "@mui/material";
 import { Container } from "@mui/system";
 import { TokenInfo } from "../models/Cis2Types";
 import Cis2FindInstanceOrInit from "../components/Cis2FindInstanceOrInit";
@@ -32,11 +23,7 @@ enum Steps {
 
 type StepType = { step: Steps; title: string };
 
-function MintPage(props: {
-	provider: WalletApi;
-	account: string;
-	contractInfo: Cis2ContractInfo;
-}) {
+function MintPage(props: { provider: WalletApi; account: string; contractInfo: Cis2ContractInfo }) {
 	const steps: StepType[] = [
 		{
 			step: Steps.GetOrInitCis2,
@@ -71,10 +58,7 @@ function MintPage(props: {
 		files: [],
 	});
 
-	function onGetCollectionAddress(
-		address: ContractAddress,
-		contractInfo: Cis2ContractInfo
-	) {
+	function onGetCollectionAddress(address: ContractAddress, contractInfo: Cis2ContractInfo) {
 		setState({
 			...state,
 			activeStep: steps[1],
@@ -111,9 +95,7 @@ function MintPage(props: {
 		});
 	}
 
-	function onMetadataPrepared(tokenMetadataMap: {
-		[tokenId: string]: TokenInfo;
-	}) {
+	function onMetadataPrepared(tokenMetadataMap: { [tokenId: string]: TokenInfo }) {
 		setState({
 			...state,
 			activeStep: steps[4],
@@ -140,19 +122,11 @@ function MintPage(props: {
 						account={props.account}
 						contractInfo={props.contractInfo}
 						address={state.nftContract}
-						onDone={(address, contractInfo) =>
-							onGetCollectionAddress(address, contractInfo)
-						}
+						onDone={(address, contractInfo) => onGetCollectionAddress(address, contractInfo)}
 					/>
 				);
 			case Steps.ConnectPinata:
-				return (
-					<ConnectPinata
-						onDone={onPinataConnected}
-						onSkip={onPinataSkipped}
-						jwt={state.pinataJwt}
-					/>
-				);
+				return <ConnectPinata onDone={onPinataConnected} onSkip={onPinataSkipped} jwt={state.pinataJwt} />;
 			case Steps.UploadFiles:
 				return <UploadFiles onDone={onFilesUploaded} files={state.files} />;
 			case Steps.PrepareMetadata:
@@ -181,21 +155,15 @@ function MintPage(props: {
 	}
 
 	function goBack(): void {
-		var activeStepIndex = steps.findIndex(
-			(s) => s.step === state.activeStep.step
-		);
+		var activeStepIndex = steps.findIndex((s) => s.step === state.activeStep.step);
 		var previousStepIndex = Math.max(activeStepIndex - 1, 0);
 
 		setState({ ...state, activeStep: steps[previousStepIndex] });
 	}
 
 	return (
-		<Container sx={{ maxWidth: "xl", pt: "10px" }}>
-			<Stepper
-				activeStep={state.activeStep.step}
-				alternativeLabel
-				sx={{ padding: "20px" }}
-			>
+		<>
+			<Stepper activeStep={state.activeStep.step} alternativeLabel sx={{ padding: "20px" }}>
 				{steps.map((step) => (
 					<Step key={step.step}>
 						<StepLabel>{step.title}</StepLabel>
@@ -205,20 +173,12 @@ function MintPage(props: {
 			<Paper sx={{ padding: "20px" }} variant="outlined">
 				<Grid container>
 					<Grid item xs={1}>
-						<IconButton
-							sx={{ border: "1px solid black", borderRadius: "100px" }}
-							onClick={() => goBack()}
-						>
+						<IconButton sx={{ border: "1px solid black", borderRadius: "100px" }} onClick={() => goBack()}>
 							<ArrowBackRounded></ArrowBackRounded>
 						</IconButton>
 					</Grid>
 					<Grid item xs={11}>
-						<Typography
-							variant="h4"
-							gutterBottom
-							sx={{ pt: "20px", width: "100%" }}
-							textAlign="center"
-						>
+						<Typography variant="h4" gutterBottom sx={{ pt: "20px", width: "100%" }} textAlign="center">
 							{state.activeStep.title}
 						</Typography>
 					</Grid>
@@ -229,10 +189,9 @@ function MintPage(props: {
 					message={alertState.message}
 					onClose={() => setAlertState({ open: false, message: "" })}
 					severity={alertState.severity}
-					// anchorOrigin={{ vertical: "top", horizontal: "center" }}
 				/>
 			</Paper>
-		</Container>
+		</>
 	);
 }
 

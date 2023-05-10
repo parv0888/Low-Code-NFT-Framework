@@ -76,7 +76,6 @@ export default function Cis2AuctionTransferToken(props: {
         index: form.contractIndex,
         subindex: form.contractSubindex,
       });
-      console.log(`supports cis2`);
       await transfer(
         props.provider,
         props.account,
@@ -84,7 +83,6 @@ export default function Cis2AuctionTransferToken(props: {
         nftContractAddress,
         props.tokenContractInfo
       );
-      console.log(`tansfer completed`);
       props.onDone(nftContractAddress, form.tokenId, Number(form.amount));
     } catch (error: any) {
       console.error(error);

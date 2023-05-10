@@ -28,5 +28,8 @@ export default function BackendCatchupStatus(props: { provider: WalletApi; onUpd
 			});
 	}, 1000);
 
-	return <>{isCatchingUp && <CircularProgress color="warning" />}</>;
+	return <>
+		{isCatchingUp && <CircularProgress color="warning" />}
+		{!isCatchingUp && <CircularProgress color="warning" variant="determinate" value={100} />}
+	</>;
 }

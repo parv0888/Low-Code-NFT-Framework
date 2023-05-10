@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 import ImageList from "@mui/material/ImageList";
-import Container from "@mui/material/Container";
 import { Cis2ContractInfo, ContractInfo } from "../../models/ConcordiumContractClient";
 import { Auction } from "../../models/AuctionTypes";
-import { list } from "../../models/Cis2AuctionWebClient";
+import { ended, list } from "../../models/Cis2AuctionWebClient";
 import Cis2AuctionsListItem from "./Cis2AuctionsListItem";
 import Cis2AuctionBidDialog from "./Cis2AuctionBidDialog";
+import { Typography } from "@mui/material";
+import Cis2AuctionFinalizeDialog from "./Cis2AuctionFinalizeDialog";
 
 /**
  * Gets the List of buyable tokens from Marketplace contract and displays them.
  */
-export default function AuctionsList(props: {
-	cis2ContractInfo: Cis2ContractInfo;
+export default function EndedAuctionsList(props: {
 	provider: WalletApi;
+	cis2ContractInfo: Cis2ContractInfo;
 	contractInfo: ContractInfo;
 	account: string;
 }) {
@@ -22,7 +23,7 @@ export default function AuctionsList(props: {
 	let [auctions, setAuctions] = useState<Auction[]>([]);
 
 	useEffect(() => {
-		list().then((auctions) => setAuctions(auctions));
+		ended(props.account).then((auctions) => setAuctions(auctions));
 	}, [props.account, refresh.refresh]);
 
 	const handleClose = () => {
@@ -32,7 +33,12 @@ export default function AuctionsList(props: {
 	};
 
 	return (
-		<Container maxWidth={"md"}>
+		<>
+			{auctions.length === 0 && (
+				<Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+					No winning auctions
+				</Typography>
+			)}
 			<ImageList key="nft-image-list" cols={3}>
 				{auctions.map((auction) => (
 					<Cis2AuctionsListItem
@@ -47,7 +53,7 @@ export default function AuctionsList(props: {
 				))}
 			</ImageList>
 			{selected && (
-				<Cis2AuctionBidDialog
+				<Cis2AuctionFinalizeDialog
 					participationContractInfo={props.cis2ContractInfo}
 					tokenContractInfo={props.cis2ContractInfo}
 					provider={props.provider}
@@ -57,6 +63,6 @@ export default function AuctionsList(props: {
 					onClose={handleClose}
 				/>
 			)}
-		</Container>
+		</>
 	);
 }

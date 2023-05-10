@@ -68,9 +68,38 @@ export const bid = async (
 					throw new Error("Logging error");
 				case -9:
 					throw new Error("Last Bid amount Transfer Error");
-			};
+			}
 		}
-		
+
+		throw err;
+	}
+};
+
+export const finalize = async (provider: WalletApi, account: string, auctionContractAddress: ContractAddress) => {
+	try {
+		await updateContract(
+			provider,
+			AUCTION_CONTRACT_INFO,
+			undefined,
+			account,
+			auctionContractAddress,
+			"finalize",
+			BigInt(9999)
+		);
+	} catch (err: any) {
+		if (err.cause && err.cause.length) {
+			switch (err?.cause[0]?.rejectReason) {
+				case -1:
+					throw new Error("Auction Still Active");
+				case -2:
+					throw new Error("Auction Not Open");
+				case -3:
+					throw new Error("CIS2 Transfer Error");
+				case -4:
+					throw new Error("Log Error");
+			}
+		}
+
 		throw err;
 	}
 };

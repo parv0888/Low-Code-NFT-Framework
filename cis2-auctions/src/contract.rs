@@ -274,7 +274,7 @@ pub fn auction_finalize<S: HasStateApi>(
         logger
             .log(&AuctionEvent::AuctionUpdated(
                 crate::events::AuctionUpdatedEvent {
-                    auction_state: state.auction_state.clone(),
+                    auction_state: AuctionState::Sold(account_address),
                     highest_bidder: state.highest_bidder,
                     minimum_raise: state.minimum_raise,
                     end: state.end,

@@ -30,7 +30,6 @@ export default function Cis2AuctionCheckCanBid(props: {
 		canBid(props.provider, props.auctionContractAddress, props.account)
 			.then((ccdAmount) => {
 				setState({ ...state, isInProgress: false });
-				console.log(`Can bid ${(BigInt(ccdAmount) / BigInt(1000000)).toString()} CCD`);
 				props.onContinue(ccdAmount);
 			})
 			.catch((err) => {

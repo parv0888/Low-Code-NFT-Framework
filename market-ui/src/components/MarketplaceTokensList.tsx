@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 import ImageList from "@mui/material/ImageList";
-import Container from "@mui/material/Container";
 import { ContractAddress } from "@concordium/web-sdk";
 
 import MarketplaceTokensListItem from "./MarketplaceTokensListItem";
@@ -34,8 +33,8 @@ function MarketplaceTokensList(props: {
 		setState({ ...state, selectedToken: token });
 
 	return (
-		<Container maxWidth={"md"}>
-			<ImageList key="nft-image-list" cols={3}>
+		<>
+			<ImageList key="nft-image-list" cols={4}>
 				{state.tokens.map((t) => (
 					<MarketplaceTokensListItem
 						provider={props.provider}
@@ -58,7 +57,7 @@ function MarketplaceTokensList(props: {
 					onClose={() => setSelectedToken(undefined)}
 				/>
 			)}
-		</Container>
+		</>
 	);
 }
 

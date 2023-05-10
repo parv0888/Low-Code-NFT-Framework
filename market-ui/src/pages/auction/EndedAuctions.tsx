@@ -5,9 +5,8 @@ import {
   Cis2ContractInfo,
   ContractInfo,
 } from "../../models/ConcordiumContractClient";
-import AuctionsList from "../../components/auction/AuctionsList";
 
-export default function ListAuctionsPage(props: {
+export default function EndedAuctions(props: {
   cis2ContractInfo: Cis2ContractInfo;
   provider: WalletApi;
   account: string;
@@ -15,7 +14,7 @@ export default function ListAuctionsPage(props: {
 }) {
   return (
     <Paper variant="outlined">
-      <AuctionsList
+      <EndedAuctions
         provider={props.provider as WalletApi}
         account={props.account}
         contractInfo={props.contractInfo}
